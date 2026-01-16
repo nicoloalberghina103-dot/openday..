@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>Il quiz della Matematica</title>
+<style>
+    body {
+        font-family: "Comic Sans MS", sans-serif;
+        background: linear-gradient(135deg, #ffffcc, #ffe0b3);
+        text-align: center;
+        padding: 30px;
+        color: #444;
+        transition: all 0.3s ease-in-out;
+        position: relative;
+        overflow-x      : 2px 2px #ffffff;
+        margin-bottom: 5px;
+    }
+
+    #monster {
+        font-size: 110px;
+        transition: transform 0.4s, filter 0.4s;
+        display: inline-block;
+    }
+
+    .happy { transform: scale(1.2); }
+    .angry { transform: scale(0.8) rotate(-5deg); filter: hue-rotate(-50deg); }
+    .wow   { transform: scale(1.4) rotate(5deg); }
+    .timesup { transform: scale(0.7) rotate(10deg); }
+
+    #game-box, #end-screen {
+        background: #ffffffcc;
+        padding: 25px;
+        border-radius: 25px;
+        width: 400px;
+        margin: auto;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        border: 3px solid #ffe3c2;
+        display: none;
+    }
+
+    #start-box { 
+        margin-top: 50px; 
+        background: #ffffffcc;
+        padding: 30px;
+        border-radius: 25px;
+        width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+        box-shadow: 0 6px 25px rgba(0,0,0,0.2); 
+        border: 3px solid #ffe3c2;
+    }
+
+    #player-name, #answer, #difficulty {
+        font-family: "Comic Sans MS", sans-serif;
+        border: 2px solid #ff934f;
+        border-radius: 10px;
+        padding: 10px;
+        margin-top: 10px;
+        width: 80%;
+        box-sizing: border-box; 
+        font-size: 24px;
+        text-align: center;
+        outline: none;
+    }
+
+    #answer { margin-bottom: 5px; }
+    #difficulty { width: 50%; margin-bottom: 10px; }
+
+    button {
+        background: #0077b6;
+        color: white;
+        font-size: 22px;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 15px;
+        cursor: pointer;
+        margin-top: 15px;
+        box-shadow: 0 4px 0 #00527e;
+        transition: 0.2s;
+        font-weight: bold;
+    }
+
+    button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 0 #00527e;
+        filter: brightness(1.1);
+    }
+    button:active {
+        transform: translateY(0);
+        box-shadow: 0 4px 0 #00527e;
+    }
+
+    #start-button {
+        background: #ff934f;
+        color: white;
+        font-size: 28px;
+        padding: 15px 40px;
+        border: none;
+        border-radius: 20px;
+        cursor: pointer;
+        box-shadow: 0 5px 0 #d67a3b;
+    }
+    #start-button:hover { background: #ff7b2e; transform: translateY(-3px); box-shadow: 0 7px 0 #d67a3b; }
+    #start-button:active { transform: translateY(0); box-shadow: 0 5px 0 #d67a3b; }
+
+    #timer-bar {
+        width: 100%;
+        height: 15px;
+        background: #ffe0c2;
+        border-radius: 10px;
+        margin-top: 10px;
+        overflow: hidden;
+    }
+    #timer-fill {
+        height: 100%;
+        width: 100%;
+        background: #ff6b6b;
+        transition: width 1s linear, background 0.5s ease; 
+    }
+    #timer-text {
+        margin-top: 5px;
+        font-size: 22px;
+        font-weight: bold;
+    }
+
+    #leaderboard { text-align: center; margin-top: 20px; }
+    #leaderboard table {
+        width: 90%;
+        margin: 15px auto 0 auto;
+        border-collapse: collapse;
+        font-size: 18px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    #leaderboard th, #leaderboard td {
+        border: 1px solid #ffbf99;
+        padding: 8px;
+        background: white;
+    }
+    #leaderboard th {
+        background: #ff934f;
+        color: white;
+        border: 1px solid #d67a3b;
+        text-transform: uppercase;
+        font-size: 16px;
+    }
+
+    /* Flash layer */
+    #flash-layer {
+        position: fixed;
+        top:0; left:0; width:100%; height:100%;
+        pointer-events: none;
+        z-index: 9999;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    #flash-layer.correct { background: rgba(0,255,0,0.3); opacity: 1; }
+    #flash-layer.wrong   { background: rgba(255,0,0,0.3); opacity: 1; }
+
+</style>
+</head>
+<body>
+
+<div id="flash-layer"></div>
+
+<h1>👾Gallo Math:<br> Il quiz della Matematica 👾</h1>
+<p id="monster">😃</p>
+
+<div id="start-box">
+    <p style="font-size: 24px; font-weight: bold;">Scrivi il tuo nome:</p>
+    <input id="player-name" type="text" placeholder="Il tuo nome">
+    <br><br>
+    <button id="start-button" onclick="startGame()">Inizia il gioco</button>
+</div>
+
+<div id="game-box">
+    <p><strong>Seleziona la difficoltà:</strong></p>
+    <select id="difficulty" onchange="newQuestion(); updateMonster('neutral')">
+        <option value="easy">Facile</option>
+        <option value="medium">Medio</option>
+        <option value="hard">Difficile</option>
+    </select>
+
+    <div id="timer-bar">
+        <div id="timer-fill"></div>
+    </div>
+    <p id="timer-text">60s</p>
+
+    <p id="question" style="font-size: 32px; margin-top: 15px;"></p>
+
+    <input type="number" id="answer" placeholder="?" />
+    <br>
+    <button onclick="checkAnswer()">Rispondi</button>
+
+    <button onclick="endGame()" style="margin-left: 10px;">
+        Termina partita
+    </button>
+
+    <p id="score">Punteggio: 0</p>
+</div>
+
+<div id="end-screen">
+    <h2 style="font-size:40px; color:#d62828;">🎉 Partita conclusa! 🎉</h2>
+    <p id="final-monster" style="font-size:90px;">😃</p>
+
+    <p id="final-score" style="font-size:30px; font-weight:bold;"></p>
+    <p id="final-combo" style="font-size:24px; color:#555;"></p>
+
+    <h3 style="font-size:30px;">🏆 Classifica</h3>
+    <div id="leaderboard"></div>
+
+    <button onclick="startGame()">🔁 Rigioca</button>
+    <button onclick="backToMenu()">🏠 Torna al menu</button>
+</div>
+
+<script>
+let num1, num2, operator, correctAnswer;
+let score = 0, comboCount = 0, bestCombo = 0, playerName = "";
+let totalTime = 60; // 60 secondi per tutta la partita
+let timer;
+
+const MONSTERS = {
+    easy:   { neutral: "😊", happy: "😁", angry: "😖", wow: "🤩", timesup: "😵" },
+    medium: { neutral: "😐", happy: "😄", angry: "😡", wow: "🤯", timesup: "😵" },
+    hard:   { neutral: "👹", happy: "😈", angry: "💀", wow: "🔥", timesup: "☠️" }
+};
+
+function startGame() {
+    playerName = document.getElementById("player-name").value.trim();
+    if (playerName === "") { alert("Per favore inserisci il tuo nome!"); return; }
+
+    document.getElementById("start-box").style.display = "none";
+    document.getElementById("end-screen").style.display = "none";
+    document.getElementById("game-box").style.display = "block";
+
+    score = 0; comboCount = 0; bestCombo = 0;
+    document.getElementById("score").textContent = "Punteggio: 0";
+
+    updateMonster("neutral");
+    startTimer();
+    newQuestion();
+}
+
+function backToMenu() {
+    clearInterval(timer);
+    document.getElementById("end-screen").style.display = "none";
+    document.getElementById("game-box").style.display = "none";
+    document.getElementById("start-box").style.display = "block";
+    document.getElementById("monster").textContent = "😃";
+}
+
+function getDifficulty() { return document.getElementById("difficulty").value; }
+
+function updateMonster(state) {
+    const diff = getDifficulty();
+    document.getElementById("monster").textContent = MONSTERS[diff][state];
+}
+
+function animateMonster(className) {
+    const m = document.getElementById("monster");
+    m.classList.add(className);
+    setTimeout(() => m.classList.remove(className), 900);
+}
+
+function getSettings() {
+    const diff = getDifficulty();
+    if (diff === "easy")   return { max: 10, ops: ["+", "-", "×"] };
+    if (diff === "medium") return { max: 20, ops: ["+", "-", "×"] };
+    if (diff === "hard")   return { max: 50, ops: ["+", "-", "×", "÷"] };
+}
+
+/* TIMER DI 60 SECONDI PER TUTTA LA PARTITA */
+function startTimer() {
+    totalTime = 60;
+    document.getElementById("timer-fill").style.width = "100%";
+    document.getElementById("timer-text").textContent = totalTime + "s";
+
+    clearInterval(timer);
+    timer = setInterval(() => {
+        totalTime--;
+        document.getElementById("timer-text").textContent = totalTime + "s";
+        document.getElementById("timer-fill").style.width = (totalTime) + "%";
+
+        if (totalTime <= 10) document.getElementById("timer-fill").style.background = "#d62828";
+        else document.getElementById("timer-fill").style.background = "#ff6b6b";
+
+        if (totalTime <= 0) { clearInterval(timer); endGame(); }
+    }, 1000);
+}
+
+/* NUOVA DOMANDA */
+function newQuestion() {
+    const { max, ops } = getSettings();
+    num1 = Math.floor(Math.random() * max);
+    num2 = Math.floor(Math.random() * max);
+    operator = ops[Math.floor(Math.random() * ops.length)];
+
+    if (operator === "-") {
+        if (num2 > num1) [num1,num2] = [num2,num1];
+        correctAnswer = num1 - num2;
+    } else if (operator === "+") correctAnswer = num1 + num2;
+    else if (operator === "×") {
+        if (getDifficulty() !== "hard") {
+            num1 = Math.floor(Math.random()*(max/2)+1);
+            num2 = Math.floor(Math.random()*(max/2)+1);
+        }
+        correctAnswer = num1*num2;
+    } else if (operator === "÷") {
+        num2 = Math.floor(Math.random()*(max-1))+1;
+        correctAnswer = Math.floor(Math.random()*(max/4)+1);
+        num1 = num2*correctAnswer;
+    }
+
+    document.getElementById("question").textContent = `${num1} ${operator} ${num2} = ?`;
+    document.getElementById("answer").value = "";
+    document.getElementById("answer").focus();
+}
+
+/* FLASH CORRETTO/ERRATO */
+function flashBody(type) {
+    const layer = document.getElementById("flash-layer");
+    layer.classList.remove("correct","wrong");
+    void layer.offsetWidth; // trigger reflow
+    layer.classList.add(type);
+    setTimeout(() => layer.classList.remove(type), 300);
+}
+
+/* CONTROLLA RISPOSTA */
+function checkAnswer() {
+    const answerInput = document.getElementById("answer");
+    const userAnswer = parseInt(answerInput.value);
+    if (isNaN(userAnswer)) { alert("Per favore, inserisci un numero!"); return; }
+
+    if (userAnswer === correctAnswer) {
+        score++; comboCount++;
+        if (comboCount > bestCombo) bestCombo = comboCount;
+
+        if (comboCount >= 5) { score+=5; comboCount=0; updateMonster("wow"); animateMonster("wow"); }
+        else if (comboCount >=3) { score+=3; comboCount=0; updateMonster("wow"); animateMonster("wow"); }
+        else { updateMonster("happy"); animateMonster("happy"); }
+
+        flashBody("correct");
+
+    } else {
+        comboCount=0; updateMonster("angry"); animateMonster("angry");
+        flashBody("wrong");
+    }
+
+    document.getElementById("score").textContent = "Punteggio: "+score;
+    setTimeout(() => { updateMonster("neutral"); newQuestion(); }, 1200);
+}
+
+document.getElementById("answer").addEventListener("keyup", e => { if (e.key==="Enter") checkAnswer(); });
+
+/* FINE PARTITA */
+function endGame() {
+    clearInterval(timer);
+    document.getElementById("game-box").style.display="none";
+
+    let finalFace = score>=10?"👑":score>=5?"🤩":score>=2?"🙂":"😢";
+    document.getElementById("final-monster").textContent=finalFace;
+
+    document.getElementById("final-score").textContent="Punteggio finale: "+score;
+    document.getElementById("final-combo").textContent="Combo massima: "+bestCombo;
+
+    saveScore(); updateLeaderboard();
+    document.getElementById("end-screen").style.display="block";
+}
+
+/* CLASSIFICA */
+function saveScore() {
+    const entry={name:playerName,score:score,combo:bestCombo,date:new Date().toLocaleDateString()};
+    let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+    board.push(entry);
+    board.sort((a,b)=>b.score!==a.score?b.score-a.score:b.combo-a.combo);
+    board = board.slice(0,10);
+    localStorage.setItem("leaderboard", JSON.stringify(board));
+}
+
+function updateLeaderboard() {
+    let board = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+    let html=`<table>
+        <tr><th>Giocatore</th><th>Punti</th><th>Combo Max</th><th>Data</th></tr>`;
+    board.forEach((p,index)=>{
+        let rowStyle = index===0?'style="background:#fff8e1;font-weight:bold;"':'';
+        html+=`<tr ${rowStyle}><td>${p.name}</td><td>${p.score}</td><td>${p.combo}</td><td>${p.date}</td></tr>`;
+    });
+    html+="</table>";
+    document.getElementById("leaderboard").innerHTML = html;
+}
+</script>
+
+</body>
+</html>
+<p>Creato Ed Ideato da Nicolò Alberghina</p>
